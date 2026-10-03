@@ -54,3 +54,4 @@ When you're done, simply remove the containers by running the following command:
 ```
 docker compose down
 ```
+Todo CI/CD enabled
