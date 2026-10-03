@@ -96,15 +96,22 @@ RUN npm run test
 # It pulls the package.json and package-lock.json from the test stage to ensure that
 # the tests run (without this, the test stage would simply be skipped).
 ###################################################
-FROM base AS final
+FROM node:22-trixie-slim AS production-deps
+WORKDIR /usr/local/app
 ENV NODE_ENV=production
 COPY --from=test /usr/local/app/package.json /usr/local/app/package-lock.json ./
 COPY .npmrc .
-RUN npm ci --production && \
-    npm cache clean --force
+RUN npm ci --omit=dev && \
+    npm cache clean --force && \
+    rm -f package-lock.json
 COPY --from=sqlite3-build /usr/local/app/node_modules/sqlite3/build \
     ./node_modules/sqlite3/build
+
+FROM gcr.io/distroless/nodejs22-debian13 AS final
+ENV NODE_ENV=production
+WORKDIR /usr/local/app
+COPY --from=production-deps /usr/local/app/node_modules ./node_modules
 COPY backend/src ./src
 COPY --from=client-build /usr/local/app/dist ./src/static
 EXPOSE 3000
-CMD ["node", "src/index.js"]
+CMD ["src/index.js"]
